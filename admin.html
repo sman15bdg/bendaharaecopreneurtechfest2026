@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panel Bendahara – EcoPreneur TechFest 2026</title>
+</head><body><div class="w">
+<header><img id="lg" alt="Logo SMAN 15"><div><h1>Panel Bendahara</h1><small>EcoPreneur TechFest 2026 · SMAN 15 Bandung</small></div></header>
+<div id="v"></div></div><div id="m" class="md" hidden></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="common.js"></script>
+<script>
+document.getElementById('lg').src=LOGO;
+let PINV='',docs=[],auth=false,flt='menunggu';
+const g=id=>docs.find(d=>d.id===id);
+function draw(){document.getElementById('v').innerHTML=auth?benH():`<div class="c"><b>Masuk Bendahara</b><label>PIN</label><input id="pin" type="password" inputmode="numeric" onkeydown="if(event.key==='Enter')login()"><div class="row"><button class="p" onclick="login()">Masuk</button></div></div>`}
+async function loadList(){try{docs=(await api('admin_list',{pin:PINV})).list;draw()}catch(e){alert(e.message)}}
+async function login(){PINV=document.getElementById('pin').value;try{docs=(await api('admin_list',{pin:PINV})).list;auth=true;draw()}catch(e){PINV='';alert(e.message)}}
+function benH(){const L=docs.filter(d=>d.status===flt).sort((a,b)=>b.dibuat-a.dibuat),n=s=>docs.filter(d=>d.status===s).length;
+ return `<div class="row"><button onclick="loadList()">↻ Muat ulang</button></div><div class="chips" style="margin:10px 0">${['menunggu','terverifikasi','ditolak'].map(s=>`<button class="${s===flt?'on':''}" onclick="flt='${s}';draw()">${s[0].toUpperCase()+s.slice(1)} (${n(s)})</button>`).join('')}</div>`+
+ (L.map(d=>`<div class="c"><b>${E(d.instansi)}</b> ${stH(d)}<div class="mu">${E(d.jenis)} · PJ: ${E(d.nama)} · WA ${E(d.wa)}<br>Kode ${d.id}${d.noKw?' · '+d.noKw:''}</div><ul style="margin:6px 0;padding-left:18px">${d.items.map(x=>`<li>${E(x.n)} — ${R(x.p)}</li>`).join('')}</ul><b>Total ${R(d.total)}</b><div class="row"><button onclick="zoom('${d.id}')">Lihat bukti transfer</button></div><div class="row">`+
+ (d.status==='menunggu'?`<button class="p" onclick="ver('${d.id}')">Verifikasi</button><button class="d" onclick="tolak('${d.id}')">Tolak</button>`:d.status==='terverifikasi'?`<button class="p" onclick="showKw('${d.id}')">Kwitansi / Kirim WA</button>`:`<span class="mu">${E(d.alasan)}</span>`)+`</div></div>`).join('')||'<p class="mu">Tidak ada data.</p>')}
+async function zoom(id){mod('<div class="c">Memuat bukti...</div>');try{const r=await api('admin_bukti',{pin:PINV,id});mod(`<div class="c"><img src="${r.img}" style="max-width:100%"><div class="row"><button onclick="mod()">Tutup</button></div></div>`)}catch(e){mod();alert(e.message)}}
+async function ver(id){const d=g(id);if(!confirm('Verifikasi pembayaran '+d.instansi+' sebesar '+R(d.total)+'?'))return;
+ try{const r=await api('admin_verify',{pin:PINV,id});Object.assign(d,r.d);draw();showKw(id)}catch(e){alert(e.message)}}
+async function tolak(id){const a=prompt('Alasan penolakan (mis. nominal tidak sesuai):');if(!a)return;try{const r=await api('admin_reject',{pin:PINV,id,alasan:a});Object.assign(g(id),r.d);draw()}catch(e){alert(e.message)}}
+function showKw(id){const d=g(id);mod(`<div class="c"><div class="sc">${kwH(d)}</div><div class="row"><button class="p" onclick="pdfKw(g('${id}'))">Unduh PDF (A4)</button><a class="btn" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/${d.wa}?text=${encodeURIComponent(waTxt(d))}">Kirim ke WA</a><button onclick="mod()">Tutup</button></div></div>`)}
+draw();
+</script></body></html>
