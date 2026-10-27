@@ -95,35 +95,35 @@ input,textarea{width:100%;font:inherit;padding:9px 10px;border-radius:9px;border
 </script>
 <script>
 document.getElementById('lg').src=LOGO;
-let CAT=null,S={jenis:'edu',sel:{},ln:{k:'',p:''}},LS={},cur=1,PD=null,LAST=null;
+let CAT=null,S={jenis:'edu',sel:{edu0:1},ln:{k:'',p:''},ex:{k:'',p:''}},LS={},cur=1,PD=null,LAST=null;
 const link=()=>location.origin+location.pathname;
 async function init(){draw();try{CAT=(await api('catalog')).cat;draw()}catch(e){document.getElementById('v').innerHTML='<div class="c">Gagal memuat data. Periksa koneksi lalu muat ulang halaman.</div>'}}
 function tab(n){cur=n;[1,2].forEach(i=>document.getElementById('t'+i).className=i==n?'on':'');draw()}
 function all(){const j=S.jenis,c=CAT[j];return j==='edu'?[...c.base,...c.add]:j==='kerja'?c.grp.flatMap(g=>g[1].map(x=>[g[0]+': '+x[0],x[1],x[2]])):(c.one||[])}
-function items(){const j=S.jenis;if(j==='lain'){const p=Math.round(+S.ln.p);return S.ln.k&&p>0?[{n:S.ln.k,p}]:[]}return all().map((x,i)=>({n:x[0],p:x[1],d:x[2],i})).filter(x=>(j==='edu'&&x.i===0)||S.sel[j+x.i])}
+function items(){const j=S.jenis;if(j==='lain'){const p=Math.round(+S.ln.p);return S.ln.k&&p>0?[{n:S.ln.k,p}]:[]}const r=all().map((x,i)=>({n:x[0],p:x[1],d:x[2],i})).filter(x=>S.sel[j+x.i]);if(j==='edu'){const p=Math.round(+S.ex.p);if(S.ex.k.trim()&&p>0)r.push({n:'Add-On Lainnya: '+S.ex.k.trim(),p,d:'',custom:true})}return r}
 const tot=a=>a.reduce((s,x)=>s+x.p,0);
 function draw(){const v=document.getElementById('v');if(!CAT)return v.innerHTML='<div class="c">Memuat...</div>';v.innerHTML=cur===1?formH():statH()}
 const op=(t,j,i,x,lb)=>`<label class="opt" style="color:var(--tx);font-size:15px;margin:0"><input type="${t}" name="${j}" ${S.sel[j+i]?'checked':''} onchange="pick('${t}','${j}',${i},this.checked)"><span>${E(lb||x[0])}<div class="ds">${E(x[2]||'')}</div></span><b>${R(x[1])}</b></label>`;
 function formH(){const j=S.jenis;let o='';
- if(j==='edu'){const a=all();o+=`<div class="opt"><input type="checkbox" checked disabled><span>${E(a[0][0])}<div class="ds">${E(a[0][2])}</div></span><b>${R(a[0][1])}</b></div><div class="mu" style="margin:10px 0 0">Add-On Promotion (opsional)</div>`+a.slice(1).map((x,i)=>op('checkbox',j,i+1,x)).join('')}
+ if(j==='edu'){const a=all(),nb=CAT.edu.base.length;o+='<div class="mu">Pilih paket Education Partner</div>'+a.slice(0,nb).map((x,i)=>op('radio',j,i,x)).join('')+'<div class="mu" style="margin:12px 0 0">Add-On Promotion (opsional)</div>'+a.slice(nb).map((x,i)=>op('checkbox',j,i+nb,x)).join('')+`<div class="opt" style="display:block"><b style="font-weight:600">Lainnya (isi manual)</b><div class="ds">Isi keterangan dan harga sesuai kesepakatan dengan panitia.</div><label>Keterangan add-on</label><input value="${E(S.ex.k)}" oninput="S.ex.k=this.value;tt()"><label>Harga (Rp)</label><input type="number" inputmode="numeric" value="${E(S.ex.p)}" oninput="S.ex.p=this.value;tt()"></div>`}
  else if(j==='tenant'||j==='sponsor')o+=all().map((x,i)=>op('radio',j,i,x)).join('')+(j==='sponsor'?'<div class="mu">Harga belum termasuk PPN.</div>':'');
  else if(j==='kerja'){let last='';o+=all().map((x,i)=>{const p=x[0].split(': '),gp=p[0];let h='';if(gp!==last){last=gp;h=`<div class="mu" style="margin-top:12px"><b>${E(gp)}</b></div>`}return h+op('checkbox',j,i,x,p.slice(1).join(': '))}).join('')}
  else o+=`<label>Keperluan pembayaran</label><input id="lk" value="${E(S.ln.k)}" oninput="S.ln.k=this.value;tt()"><label>Nominal (Rp)</label><input id="lp" type="number" inputmode="numeric" value="${E(S.ln.p)}" oninput="S.ln.p=this.value;tt()">`;
- return `<div class="c"><b>1. Jenis pembayaran</b><div class="chips" style="margin-top:8px">${Object.keys(CAT).map(k=>`<button class="${k===j?'on':''}" onclick="keep();S.jenis='${k}';S.sel={};draw()">${CAT[k].l}</button>`).join('')}</div></div>
+ return `<div class="c"><b>1. Jenis pembayaran</b><div class="chips" style="margin-top:8px">${Object.keys(CAT).map(k=>`<button class="${k===j?'on':''}" onclick="keep();S.jenis='${k}';S.sel=${k==='edu'?'{edu0:1}':'{}'};draw()">${CAT[k].l}</button>`).join('')}</div></div>
 <div class="c"><b>2. Data pembayar</b><label>Nama / Instansi</label><input id="in" value="${E(LS.in||'')}"><label>Nama penanggung jawab</label><input id="nm" value="${E(LS.nm||'')}"><label>Nomor WhatsApp (untuk kirim kwitansi)</label><input id="wa" inputmode="tel" placeholder="08xxxxxxxxxx" value="${E(LS.wa||'')}"></div>
 <div class="c"><b>3. Pilihan &amp; jumlah yang harus dibayar</b>${o}<div class="tot"><span>Total</span><span id="tt">${R(tot(items()))}</span></div></div>
 <div class="c"><b>4. Bukti transfer</b><div class="mu">Transfer sesuai total ke rekening <b>${E(REK)}</b>, lalu unggah buktinya.</div><input id="bk" type="file" accept="image/*" style="margin-top:8px"><div class="row"><button class="p" id="sb" onclick="submit()">Kirim Pembayaran</button></div><div id="msg" class="mu"></div></div>`}
-function pick(t,j,i,ch){keep();if(t==='radio'){Object.keys(S.sel).forEach(k=>delete S.sel[k]);S.sel[j+i]=1}else S.sel[j+i]=ch;tt()}
+function pick(t,j,i,ch){keep();if(t==='radio'){const n=j==='edu'?CAT.edu.base.length:all().length;for(let k=0;k<n;k++)delete S.sel[j+k];S.sel[j+i]=1}else S.sel[j+i]=ch;tt()}
 function keep(){['in','nm','wa'].forEach(i=>{const e=document.getElementById(i);if(e)LS[i]=e.value})}
 function tt(){const e=document.getElementById('tt');if(e)e.textContent=R(tot(items()))}
 function shrink(f){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=900,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.6))};im.onerror=no;im.src=r.result};r.onerror=no;r.readAsDataURL(f)})}
 async function submit(){keep();const it=items(),m=document.getElementById('msg'),f=document.getElementById('bk').files[0];
  if(!LS.in||!LS.nm||numWA(LS.wa).length<9)return m.textContent='Lengkapi nama instansi, penanggung jawab, dan nomor WA.';
- if(!it.length)return m.textContent='Pilih item pembayaran terlebih dahulu.';if(!f)return m.textContent='Unggah bukti transfer.';
+ if(!it.length)return m.textContent='Pilih item pembayaran terlebih dahulu.';if(S.jenis==='edu'&&!it.some(x=>!x.custom&&x.i<CAT.edu.base.length))return m.textContent='Pilih paket Education Partner.';if(!f)return m.textContent='Unggah bukti transfer.';
  document.getElementById('sb').disabled=true;m.textContent='Mengirim...';
- try{const b=await shrink(f),r=await api('submit',{jenis:S.jenis,instansi:LS.in,nama:LS.nm,wa:numWA(LS.wa),items:it.map(x=>({n:x.n,p:x.p})),bukti:b});
+ try{const b=await shrink(f),r=await api('submit',{jenis:S.jenis,instansi:LS.in,nama:LS.nm,wa:numWA(LS.wa),items:it.map(x=>({n:x.n,p:x.p,custom:x.custom})),bukti:b});
  LAST={id:r.id,jenis:CAT[S.jenis].l,instansi:LS.in,nama:LS.nm,items:it,total:r.total,dibuat:Date.now()};
- S={jenis:'edu',sel:{},ln:{k:'',p:''}};LS={};cur=2;document.getElementById('t2').className='on';document.getElementById('t1').className='';
+ S={jenis:'edu',sel:{edu0:1},ln:{k:'',p:''},ex:{k:'',p:''}};LS={};cur=2;document.getElementById('t2').className='on';document.getElementById('t1').className='';
  document.getElementById('v').innerHTML=`<div class="c"><b>Pembayaran terkirim ✔</b><p>Kode pengajuan Anda:</p><h2 style="margin:0">${r.id}</h2><p class="mu">Simpan kode ini. Setelah diverifikasi bendahara, kwitansi digital dikirim ke WhatsApp Anda dan dapat diunduh (PDF) di tab Cek Status.</p><div class="row"><button class="p" onclick="pdfKode(LAST,link())">Unduh Bukti Pengajuan (PDF)</button><button onclick="navigator.clipboard&&navigator.clipboard.writeText(LAST.id);this.textContent='Tersalin ✔'">Salin kode</button></div></div>`+statH()}
  catch(e){m.textContent='Gagal mengirim: '+e.message;document.getElementById('sb').disabled=false}}
 function statH(){return `<div class="c"><b>Cek status pembayaran</b><label>Kode pengajuan</label><input id="kd" style="text-transform:uppercase"><div class="row"><button class="p" onclick="cek()">Cek</button></div><div id="hs"></div></div>`}
